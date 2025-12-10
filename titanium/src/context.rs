@@ -7,11 +7,15 @@ use titanium_model::{
 use tokio::sync::RwLock;
 
 /// Context for a Slash Command execution.
+use titanium_gateway::Shard;
+
+/// Context for a Slash Command execution.
 #[derive(Clone)]
 pub struct Context {
     pub http: Arc<HttpClient>,
     pub cache: Arc<titanium_cache::InMemoryCache>,
-    pub interaction: Arc<Interaction<'static>>,
+    pub shard: Arc<Shard>,
+    pub interaction: Option<Arc<Interaction<'static>>>,
     /// Whether the interaction has been deferred or replied to.
     pub has_responded: Arc<RwLock<bool>>,
 }
@@ -20,12 +24,14 @@ impl Context {
     pub fn new(
         http: Arc<HttpClient>,
         cache: Arc<titanium_cache::InMemoryCache>,
-        interaction: Interaction<'static>,
+        shard: Arc<Shard>,
+        interaction: Option<Interaction<'static>>,
     ) -> Self {
         Self {
             http,
             cache,
-            interaction: Arc::new(interaction),
+            shard,
+            interaction: interaction.map(Arc::new),
             has_responded: Arc::new(RwLock::new(false)),
         }
     }
@@ -43,6 +49,8 @@ impl Context {
             return Ok(()); // Already accepted
         }
 
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
+
         let response = InteractionResponse {
             response_type: InteractionCallbackType::DeferredChannelMessageWithSource,
             data: Some(InteractionCallbackData {
@@ -58,7 +66,7 @@ impl Context {
         };
 
         self.http
-            .create_interaction_response(self.interaction.id, &self.interaction.token, &response)
+            .create_interaction_response(interaction.id, &interaction.token, &response)
             .await?;
 
         *responded = true;
@@ -78,13 +86,14 @@ impl Context {
     ) -> Result<Message<'static>, Box<dyn std::error::Error + Send + Sync>> {
         let content = content.into();
         let mut responded = self.has_responded.write().await;
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
 
         if *responded {
             // We already deferred (or replied), so we must EDIT the original
             // Note: technically if we replied, we should create followup.
             // But for simple defer -> reply flow, this is Edit.
-            let app_id = self.interaction.application_id;
-            let token = &self.interaction.token;
+            let app_id = interaction.application_id;
+            let token = &interaction.token;
 
             // Simple struct for body
             #[derive(serde::Serialize)]
@@ -116,8 +125,8 @@ impl Context {
 
             self.http
                 .create_interaction_response(
-                    self.interaction.id,
-                    &self.interaction.token,
+                    interaction.id,
+                    &interaction.token,
                     &response,
                 )
                 .await?;
@@ -129,8 +138,8 @@ impl Context {
             let msg = self
                 .http
                 .get_original_interaction_response(
-                    self.interaction.application_id,
-                    &self.interaction.token,
+                    interaction.application_id,
+                    &interaction.token,
                 )
                 .await?;
             Ok(msg)
@@ -144,6 +153,7 @@ impl Context {
     ) -> Result<Message<'static>, Box<dyn std::error::Error + Send + Sync>> {
         let embed = embed.into();
         let mut responded = self.has_responded.write().await;
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
 
         if *responded {
             // Edit original response
@@ -155,8 +165,8 @@ impl Context {
             let message = self
                 .http
                 .edit_original_interaction_response(
-                    self.interaction.application_id,
-                    &self.interaction.token,
+                    interaction.application_id,
+                    &interaction.token,
                     EditBody {
                         embeds: vec![embed],
                     },
@@ -180,8 +190,8 @@ impl Context {
 
             self.http
                 .create_interaction_response(
-                    self.interaction.id,
-                    &self.interaction.token,
+                    interaction.id,
+                    &interaction.token,
                     &response,
                 )
                 .await?;
@@ -192,8 +202,8 @@ impl Context {
             let msg = self
                 .http
                 .get_original_interaction_response(
-                    self.interaction.application_id,
-                    &self.interaction.token,
+                    interaction.application_id,
+                    &interaction.token,
                 )
                 .await?;
             Ok(msg)
@@ -207,12 +217,10 @@ impl Context {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let content = content.into();
         let mut responded = self.has_responded.write().await;
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
 
         if *responded {
             // Can't make an existing response ephemeral if it wasn't already.
-            // But we can try to send a followup invisible message?
-            // Actually, followup flags work.
-            // For now, simpler error or fallback
             return Err("Cannot reply ephemeral after already responding".into());
         }
 
@@ -231,7 +239,7 @@ impl Context {
         };
 
         self.http
-            .create_interaction_response(self.interaction.id, &self.interaction.token, &response)
+            .create_interaction_response(interaction.id, &interaction.token, &response)
             .await?;
 
         *responded = true;
@@ -243,6 +251,7 @@ impl Context {
         &self,
         content: impl Into<String>,
     ) -> Result<Message<'static>, Box<dyn std::error::Error + Send + Sync>> {
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
         #[derive(serde::Serialize)]
         struct EditBody {
             content: String,
@@ -251,8 +260,8 @@ impl Context {
         let message = self
             .http
             .edit_original_interaction_response(
-                self.interaction.application_id,
-                &self.interaction.token,
+                interaction.application_id,
+                &interaction.token,
                 EditBody {
                     content: content.into(),
                 },
@@ -263,14 +272,12 @@ impl Context {
     }
 
     /// Send a follow-up message.
-    ///
-    /// This allows sending multiple messages for one interaction.
-    /// Note: Followups are actually Webhook executions.
     pub async fn followup(
         &self,
         content: impl Into<String>,
     ) -> Result<Message<'static>, Box<dyn std::error::Error + Send + Sync>> {
         use titanium_model::builder::ExecuteWebhook;
+        let interaction = self.interaction.as_ref().ok_or("No interaction in context")?;
 
         let params = ExecuteWebhook {
             content: Some(content.into()),
@@ -281,8 +288,8 @@ impl Context {
         let msg = self
             .http
             .execute_webhook(
-                self.interaction.application_id,
-                &self.interaction.token,
+                interaction.application_id,
+                &interaction.token,
                 &params,
             )
             .await?;
@@ -294,22 +301,23 @@ impl Context {
     /// Get the user who triggered the interaction.
     #[inline]
     pub fn user(&self) -> Option<&User<'static>> {
-        self.interaction
-            .member
-            .as_ref()
-            .and_then(|m| m.user.as_ref())
-            .or(self.interaction.user.as_ref())
+        self.interaction.as_ref().and_then(|i| {
+            i.member
+                .as_ref()
+                .and_then(|m| m.user.as_ref())
+                .or(i.user.as_ref())
+        })
     }
 
     /// Get the guild ID if in a guild.
     #[inline]
     pub fn guild_id(&self) -> Option<Snowflake> {
-        self.interaction.guild_id
+        self.interaction.as_ref().and_then(|i| i.guild_id)
     }
 
     /// Get the channel ID.
     #[inline]
     pub fn channel_id(&self) -> Option<Snowflake> {
-        self.interaction.channel_id
+        self.interaction.as_ref().and_then(|i| i.channel_id)
     }
 }

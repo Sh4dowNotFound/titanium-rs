@@ -41,6 +41,7 @@ pub mod error;
 pub use error::TitaniumError;
 
 pub use client::Client;
+pub use client::EventHandler;
 pub use framework::Framework;
 
 #[cfg(feature = "performance")]

@@ -33,3 +33,6 @@ mimalloc = { workspace = true, optional = true }
 default = []
 # Enable high-performance mimalloc allocator
 performance = ["dep:mimalloc"]
+
+[dev-dependencies]
+tracing-subscriber = { workspace = true }

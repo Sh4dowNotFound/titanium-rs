@@ -15,6 +15,7 @@ pub struct Client {
     pub http: Arc<HttpClient>,
     pub cache: Arc<InMemoryCache>,
     pub framework: Option<Arc<Framework>>,
+    pub event_handler: Option<Arc<dyn EventHandler>>,
     #[allow(dead_code)]
     token: String,
 }
@@ -29,70 +30,84 @@ impl Client {
     /// Start the client and return the event stream.
     ///
     /// This spawns the shard connection in the background.
-    pub async fn start(
-        &self,
-    ) -> Result<flume::Receiver<Event<'static>>, Box<dyn std::error::Error>> {
+    pub async fn start(&self) -> Result<(), Box<dyn std::error::Error>> {
         let (tx, rx) = flume::unbounded();
 
         let shard = self.shard.clone();
         let cache = self.cache.clone();
-
-        let tx_clone = tx.clone();
+        let http = self.http.clone();
+        let event_handler = self.event_handler.clone();
 
         // Spawn shard loop
+        let tx_clone = tx.clone();
         tokio::spawn(async move {
             if let Err(e) = shard.run(tx_clone).await {
                 eprintln!("Shard error: {:?}", e);
             }
         });
 
-        // Return a receiver that INTERCEPTS events for caching?
-        // Or duplicate the channel?
-        // Better: Client::start should probably consume the receiver from shard, cache it, and forward it.
-        // But `shard.run` takes a sender.
-        // So we can wrap the sender? No, `shard.run` sends directly.
-        // We need a middleman loop if we want "Automatic Cache Updates" without the user calling a method.
-        // Or we just update cache in a separate task if we had a broadcast channel.
-        // Flume is MPMC.
+        // Event Processing Loop
+        while let Ok(event) = rx.recv_async().await {
+            // Update Cache
+            match &event {
+                Event::Ready(ready) => {
+                    cache.insert_user(ready.user.clone());
+                    // ... other cache updates
+                }
+                Event::GuildCreate(guild) => {
+                    cache.insert_guild(*guild.clone());
+                }
+                // ...
+                _ => {}
+            }
 
-        // Let's create a proxy channel.
-        let (proxy_tx, proxy_rx) = flume::unbounded();
-
-        tokio::spawn(async move {
-            // Read from the channel that Shard writes to
-            while let Ok(event) = rx.recv_async().await {
-                // Update cache
-                match &event {
+            // Dispatch to Event Handler
+            if let Some(handler) = &event_handler {
+                match event {
                     Event::Ready(ready) => {
-                        cache.insert_user(ready.user.clone());
-                        for _guild in &ready.guilds {
-                            // These are unavailable guilds initially
-                        }
+                        let ctx = Context::new(http.clone(), cache.clone(), self.shard.clone(), None);
+                        handler.ready(ctx, *ready).await;
                     }
-                    Event::GuildCreate(guild) => {
-                        cache.insert_guild(*guild.clone());
+                    Event::MessageCreate(msg) => {
+                        let ctx = Context::new(http.clone(), cache.clone(), self.shard.clone(), None);
+                        handler.message_create(ctx, *msg).await;
                     }
-                    Event::ChannelCreate(channel) | Event::ChannelUpdate(channel) => {
-                        cache.insert_channel(*channel.clone());
+                    Event::InteractionCreate(interaction) => {
+                        let interaction_val = *interaction;
+                        let ctx = Context::new(
+                            http.clone(),
+                            cache.clone(),
+                            self.shard.clone(),
+                            Some(interaction_val.clone()),
+                        );
+                        handler.interaction_create(ctx, interaction_val).await;
                     }
-                    // Add more cache updates here...
                     _ => {}
                 }
-
-                // Forward to user
-                let _ = proxy_tx.send_async(event).await;
             }
-        });
+        }
 
-        Ok(proxy_rx)
+        Ok(())
     }
+}
+
+
+use async_trait::async_trait;
+use crate::prelude::*;
+
+#[async_trait]
+pub trait EventHandler: Send + Sync {
+    async fn ready(&self, _ctx: Context, _ready: ReadyEventData<'_>) {}
+    async fn message_create(&self, _ctx: Context, _msg: Message<'_>) {}
+    async fn interaction_create(&self, _ctx: Context, _interaction: Interaction<'_>) {}
+    // Add other events as needed
 }
 
 pub struct ClientBuilder {
     token: String,
     intents: Intents,
     framework: Option<Framework>,
-    // In a real generic trait impl we might store the dashboard config here
+    event_handler: Option<Arc<dyn EventHandler>>,
 }
 
 impl ClientBuilder {
@@ -102,12 +117,9 @@ impl ClientBuilder {
             token: token.into(),
             intents: Intents::default(),
             framework: None,
+            event_handler: None,
         }
     }
-
-    // Note: To deeply integrate Dashboard, we would typically wrap it
-    // or run it indiscriminately. For v1, users start it separately
-    // or we provide a helper to spawn it alongside.
 
     pub fn intents(mut self, intents: Intents) -> Self {
         self.intents = intents;
@@ -119,11 +131,15 @@ impl ClientBuilder {
         self
     }
 
+    pub fn event_handler<H: EventHandler + 'static>(mut self, handler: H) -> Self {
+        self.event_handler = Some(Arc::new(handler));
+        self
+    }
+
     pub async fn build(self) -> Result<Client, Box<dyn std::error::Error>> {
         let http = Arc::new(HttpClient::new(self.token.clone())?);
         let cache = Arc::new(titanium_cache::InMemoryCache::new());
 
-        // Fetch gateway info for recommended shards? For now, 1 shard.
         let config = ShardConfig::new(self.token.clone(), self.intents);
         let shard = Arc::new(Shard::new(0, 1, config));
 
@@ -132,7 +148,9 @@ impl ClientBuilder {
             http,
             cache,
             framework: self.framework.map(Arc::new),
+            event_handler: self.event_handler,
             token: self.token,
         })
     }
 }
+

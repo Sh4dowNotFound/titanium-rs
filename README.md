@@ -27,7 +27,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-titanium = "0.1"
+titanium-rs = "0.1"
+```
+
+Then in your code:
+
+```rust
+use titanium::prelude::*;
 ```
 
 ## Optimization
@@ -36,7 +42,7 @@ To enable high-performance memory allocation:
 
 ```toml
 [dependencies]
-titanium = { version = "0.1", features = ["performance"] }
+titanium-rs = { version = "0.1", features = ["performance"] }
 ```
 
 ## Safety

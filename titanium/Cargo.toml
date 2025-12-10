@@ -1,11 +1,14 @@
 [package]
-name = "titanium"
+name = "titanium-rs"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
 description = "The ultimate high-performance Discord API framework for Rust"
+
+[lib]
+name = "titanium"
 
 [dependencies]
 titanium-gateway = { path = "../titanium-gateway", version = "0.1.0" }

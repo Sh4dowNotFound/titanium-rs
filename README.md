@@ -3,6 +3,8 @@
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Rust](https://github.com/Sh4dowNotFound/titanium-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/Sh4dowNotFound/titanium-rs/actions)
 [![Documentation](https://img.shields.io/badge/docs-titanium-brightgreen)](https://sh4downotfound.github.io/titanium-rs/titanium/index.html)
+[![Security](https://img.shields.io/badge/security-policy-blue)](SECURITY.md)
+
 
 **Titanium-rs** is a high-performance, concurrent Discord library for Rust, designed for massive scale.
 

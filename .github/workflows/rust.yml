@@ -1,0 +1,29 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Verify & Test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+    - name: Install dependencies (Linux)
+      run: sudo apt-get update && sudo apt-get install -y cmake pkg-config libssl-dev libopus-dev
+    - name: Check Formatting
+      run: cargo fmt --all -- --check
+    - name: Clippy (Pedantic)
+      run: cargo clippy --all-targets --all-features -- -D warnings -W clippy::pedantic
+    - name: Run Tests
+      run: cargo test --all-features

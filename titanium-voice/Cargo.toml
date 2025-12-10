@@ -1,0 +1,52 @@
+[package]
+name = "titanium-voice"
+description = "Discord Voice Gateway client with E2EE support"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+# Use pure Rust Opus implementation (slower but no native deps)
+pure-rust-opus = []
+
+[dependencies]
+titanium-model = { path = "../titanium-model" }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+
+# Synchronization
+parking_lot = { workspace = true }
+flume = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_repr = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Networking
+url = { workspace = true }
+
+# Cryptography for voice encryption
+xsalsa20poly1305 = "0.9"
+aes-gcm = "0.10.3"
+chacha20poly1305 = "0.10.1"
+rand = { workspace = true }
+
+# Byte manipulation
+byteorder = "1.5"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+tracing-subscriber = { workspace = true }

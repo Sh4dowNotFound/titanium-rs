@@ -1,0 +1,22 @@
+[package]
+name = "titanium-model"
+description = "Core types and models for Titan Discord library"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
+serde_repr = { workspace = true }
+bitflags = { workspace = true }
+simd-json = { workspace = true, optional = true }
+smallvec = { version = "1.13", features = ["serde", "union", "const_generics"] }
+ahash = { workspace = true }
+
+[features]
+default = ["simd"]
+simd = ["dep:simd-json"]
+serde = ["dep:serde_json"]

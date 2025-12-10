@@ -20,6 +20,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Build Documentation
         run: cargo doc --no-deps --all-features
+      - name: Create index.html redirect
+        run: echo '<meta http-equiv="refresh" content="0; url=titanium_rs/index.html">' > target/doc/index.html
       - name: Fix permissions
         run: chmod -c -R +rX "target/doc" | while read line; do echo "::warning title=Invalid Permissions::$line"; done
       - name: Setup Pages

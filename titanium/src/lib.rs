@@ -10,7 +10,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use titanium::prelude::*;
+//! use titanium_rs::prelude::*;
 //!
 //! #[tokio::main]
 //! async fn main() {

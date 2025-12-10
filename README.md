@@ -33,7 +33,7 @@ titanium-rs = "0.1"
 Then in your code:
 
 ```rust
-use titanium::prelude::*;
+use titanium_rs::prelude::*;
 ```
 
 ## Optimization

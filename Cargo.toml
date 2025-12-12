@@ -1,0 +1,84 @@
+[workspace]
+resolver = "2"
+members = [
+    "titanium-gateway",
+    "titanium-http",
+    "titanium-cache",
+    "titanium-voice",
+    "titanium-model",
+    "titanium",
+]
+
+[workspace.package]
+version = "0.1.5"
+edition = "2021"
+rust-version = "1.92.0"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/Sh4dowNotFound/titanium-rs"
+authors = ["Titanium Contributors"]
+readme = "README.md"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.42", features = ["full"] }
+tokio-tungstenite = { version = "0.28", features = ["rustls-tls-native-roots"] }
+
+# Synchronization
+parking_lot = "0.12"
+flume = "0.12"
+dashmap = "6.1"
+
+# Serialization (SIMD-accelerated)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+simd-json = "0.17"
+serde_repr = "0.1"
+
+# Error handling
+thiserror = "2.0"
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+url = "2.5"
+futures-util = "0.3"
+rand = "0.9"
+bitflags = "2.6"
+ahash = { version = "0.8", features = ["serde"] }
+
+# HTTP client (for titan-http)
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "http2"] }
+
+
+
+# Compression
+flate2 = "1.0"
+
+# Encoding
+base64 = "0.22"
+
+# Memory Allocation
+mimalloc = { version = "0.1", default-features = false }
+
+[profile.dev]
+# Lower debug info level for faster compile/link
+debug = 1
+# Enable incremental for faster iteration (re-enabled for speed)
+incremental = true
+# Use unpacked debug info for faster linking on Windows
+split-debuginfo = "unpacked"
+
+[profile.test]
+split-debuginfo = "unpacked"
+debug = 1
+incremental = true
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+
+# Benchmarks
+[workspace.dependencies.criterion]
+version = "0.5"
+features = ["html_reports"]

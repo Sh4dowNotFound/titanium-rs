@@ -1,0 +1,60 @@
+[package]
+name = "titanium-gateway"
+description = "High-performance Discord Gateway WebSocket client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme.workspace = true
+
+[package.metadata.docs.rs]
+all-features = false
+no-default-features = true
+features = ["auto-sharding", "etf", "serde"]
+
+[features]
+default = ["simd"]
+# Enable SIMD-accelerated JSON parsing (requires CPU with SSE4.2/AVX2)
+simd = ["simd-json"]
+# Enable Erlang Term Format (ETF) encoding for smaller payloads
+etf = []
+# Enable auto-sharding using titan-http
+auto-sharding = ["dep:titanium-http"]
+
+[dependencies]
+titanium-model = { path = "../titanium-model", version = "0.1.4" }
+titanium-http = { path = "../titanium-http", version = "0.1.4", optional = true }
+
+# Async runtime
+tokio = { workspace = true }
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+
+# Synchronization
+parking_lot = { workspace = true }
+flume = { workspace = true }
+dashmap = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true, features = ["raw_value"] }
+simd-json = { workspace = true, optional = true }
+serde_repr = { workspace = true }
+
+# Compression
+flate2 = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Utilities
+tracing = { workspace = true }
+url = { workspace = true }
+rand = { workspace = true }
+base64 = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util", "macros"] }
+tracing-subscriber = { workspace = true }
+titanium-http = { path = "../titanium-http" }

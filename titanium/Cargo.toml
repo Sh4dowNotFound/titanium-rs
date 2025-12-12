@@ -1,0 +1,46 @@
+[package]
+name = "titanium-rs"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "The ultimate high-performance Discord API framework for Rust"
+
+[package.metadata.docs.rs]
+all-features = false
+no-default-features = true
+
+[dependencies]
+titanium-model = { path = "../titanium-model", version = "0.1.4" }
+titanium-http = { path = "../titanium-http", version = "0.1.4" }
+titanium-gateway = { path = "../titanium-gateway", version = "0.1.4", features = ["auto-sharding"] }
+titanium-voice = { path = "../titanium-voice", version = "0.1.4" }
+titanium-cache = { path = "../titanium-cache", version = "0.1.4" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+async-trait = "0.1"
+thiserror = { workspace = true }
+
+tokio = { workspace = true }
+dashmap = { workspace = true }
+flume = { workspace = true }
+ahash = { workspace = true }
+reqwest = { workspace = true }
+mimalloc = { workspace = true, optional = true }
+
+[features]
+default = []
+# Enable high-performance mimalloc allocator
+performance = ["dep:mimalloc"]
+
+[dev-dependencies]
+tracing-subscriber = { workspace = true }
+criterion = { workspace = true }
+simd-json = { workspace = true }
+itoa = "1.0"
+
+[[bench]]
+name = "benchmarks"
+harness = false

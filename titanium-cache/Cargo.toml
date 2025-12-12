@@ -1,0 +1,18 @@
+[package]
+name = "titanium-cache"
+description = "In-memory cache for Discord entities"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme.workspace = true
+
+[package.metadata.docs.rs]
+all-features = false
+no-default-features = true
+
+[dependencies]
+titanium-model = { path = "../titanium-model", version = "0.1.4" }
+dashmap = { workspace = true }
+parking_lot = { workspace = true }

@@ -13,6 +13,6 @@ all-features = false
 no-default-features = true
 
 [dependencies]
-titanium-model = { path = "../titanium-model", version = "0.1.4" }
+titanium-model = { path = "../titanium-model", version = "0.1.6" }
 dashmap = { workspace = true }
 parking_lot = { workspace = true }

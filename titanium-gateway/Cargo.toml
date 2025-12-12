@@ -23,8 +23,8 @@ etf = []
 auto-sharding = ["dep:titanium-http"]
 
 [dependencies]
-titanium-model = { path = "../titanium-model", version = "0.1.4" }
-titanium-http = { path = "../titanium-http", version = "0.1.4", optional = true }
+titanium-model = { path = "../titanium-model", version = "0.1.6" }
+titanium-http = { path = "../titanium-http", version = "0.1.6", optional = true }
 
 # Async runtime
 tokio = { workspace = true }

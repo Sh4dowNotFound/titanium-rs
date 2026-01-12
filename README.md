@@ -21,48 +21,6 @@ cargo doc --open
 - **Titanium Model**: Comprehensive, zero-copy friendly data models for Discord API entities.
 - **Titanium Cache**: High-performance concurrent cache based on `DashMap`.
 
-## Quick Start
-
-### Installation
-
-Add this to your `Cargo.toml`:
-
-```rust
-use titanium_rs::prelude::*;
-use std::env;
-
-#[tokio::main]
-async fn main() {
-    let token = env::var("DISCORD_TOKEN").expect("Expected DISCORD_TOKEN");
-    let intents = Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT;
-
-    let client = Client::builder(token)
-        .intents(intents)
-        .event_handler(Handler)
-        .build()
-        .await
-        .expect("Err creating client");
-
-    if let Err(why) = client.start().await {
-        println!("Client error: {:?}", why);
-    }
-}
-
-struct Handler;
-
-#[async_trait]
-impl EventHandler for Handler {
-    async fn message_create(&self, ctx: Context, msg: Message<'_>) {
-        if msg.content == "!ping" {
-            let response = titanium_model::builder::MessageBuilder::new()
-                .content("Pong!")
-                .build();
-            let _ = ctx.http.create_message(msg.channel_id, &response).await;
-        }
-    }
-}
-```
-
 ## Examples
 
 Check out the `examples/` directory for full working bots:
